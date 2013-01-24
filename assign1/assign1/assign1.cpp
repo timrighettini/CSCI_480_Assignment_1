@@ -199,16 +199,14 @@ void mousebutton(int button, int state, int x, int y)
   g_vMousePos[1] = y;
 }
 
-int _tmain(int argc, _TCHAR* argv[])
+int main(int argc, char* argv[])
 {
 	// I've set the argv[1] to spiral.jpg.
 	// To change it, on the "Solution Explorer",
 	// right click "assign1", choose "Properties",
 	// go to "Configuration Properties", click "Debugging",
 	// then type your texture name for the "Command Arguments"
-
-	std::cout << "FIX THIS COMMAND LINE CODE!!!!!!" << std::endl;
-	/*
+	
 	if (argc<2)
 	{  
 		printf ("usage: %s heightfield.jpg\n", argv[0]);
@@ -221,9 +219,11 @@ int _tmain(int argc, _TCHAR* argv[])
 	    printf ("error reading %s.\n", argv[1]);
 	    exit(1);
 	}
-	*/
+	
+	for (int i = 0; i < argc; i++)
+		std::cout << "argv[" << i << "] = " << argv[i] << std::endl;
 
-	glutInit(&argc,(char**)argv);
+	glutInit(&argc,argv);
   
 	/*
 		create a window here..should be double buffered and use depth testing
@@ -238,7 +238,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
 	glutInitWindowSize(640,480);
 	glutInitWindowPosition(200,200);
-	glutCreateWindow("Test");
+	glutCreateWindow(argv[0]);
 
 	/* tells glut to use a particular display function to redraw */
 	glutDisplayFunc(display);
