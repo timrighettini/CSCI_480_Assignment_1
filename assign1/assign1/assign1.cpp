@@ -14,6 +14,12 @@
 #include <GL/glu.h>
 #include <GL/glut.h>
 
+// Other Libraries to include
+#include <iostream>
+
+// Any namespaces to include
+using namespace std;
+
 int g_iMenuId;
 
 int g_vMousePos[2] = {0, 0};
@@ -36,7 +42,7 @@ Pic * g_pHeightData;
 /* Write a screenshot to the specified filename */
 void saveScreenshot (char *filename)
 {
-  int i, j;
+  int i;
   Pic *in = NULL;
 
   if (filename == NULL)
@@ -60,10 +66,13 @@ void saveScreenshot (char *filename)
   pic_free(in);
 }
 
-void myinit()
+void initialize()
 {
   /* setup gl view here */
   glClearColor(0.0, 0.0, 0.0, 0.0);
+
+  // Set up gl shading mode
+  glShadeModel(GL_SMOOTH);
 }
 
 void display()
@@ -73,18 +82,20 @@ void display()
   /* you may also want to precede it with your 
 rotation/translation/scaling */
 
-  glBegin(GL_POLYGON);
+	glClear(GL_COLOR_BUFFER_BIT);
 
-  glColor3f(1.0, 1.0, 1.0);
-  glVertex3f(-0.5, -0.5, 0.0);
-  glColor3f(0.0, 0.0, 1.0);
-  glVertex3f(-0.5, 0.5, 0.0);
-  glColor3f(0.0, 0.0, 0.0);
-  glVertex3f(0.5, 0.5, 0.0);
-  glColor3f(1.0, 1.0, 0.0);
-  glVertex3f(0.5, -0.5, 0.0);
+	glBegin(GL_POLYGON);
+		glColor3f(1.0, 1.0, 1.0);
+		glVertex3f(-0.5, -0.5, 0.0);
+		glColor3f(0.0, 0.0, 1.0);
+		glVertex3f(-0.5, 0.5, 0.0);
+		glColor3f(0.0, 0.0, 0.0);
+		glVertex3f(0.5, 0.5, 0.0);
+		glColor3f(1.0, 1.0, 0.0);
+		glVertex3f(0.5, -0.5, 0.0);
+	glEnd();
 
-  glEnd();
+	//glutSwapBuffers();
 }
 
 void menufunc(int value)
@@ -197,10 +208,12 @@ int _tmain(int argc, _TCHAR* argv[])
 	// right click "assign1", choose "Properties",
 	// go to "Configuration Properties", click "Debugging",
 	// then type your texture name for the "Command Arguments"
+
 	if (argc<2)
 	{  
 		printf ("usage: %s heightfield.jpg\n", argv[0]);
 		exit(1);
+			cout << "Well, we made it here...1" << endl;
 	}
 
 	g_pHeightData = jpeg_read((char*)argv[1], NULL);
@@ -208,6 +221,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	{
 	    printf ("error reading %s.\n", argv[1]);
 	    exit(1);
+			cout << "Well, we made it here...2" << endl;
 	}
 
 	glutInit(&argc,(char**)argv);
@@ -218,7 +232,17 @@ int _tmain(int argc, _TCHAR* argv[])
 	    the code past here will segfault if you don't have a window set up....
 	    replace the exit once you add those calls.
 	*/
-	exit(0);
+	//exit(0);
+
+	cout << "Well, we made it here...3" << endl;
+	
+	//*
+	// Add in the window initialization functions
+	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
+	glutInitWindowSize(640, 480);
+	glutInitWindowPosition(200, 200);
+	glutCreateWindow("Test");
+	/*/
 
 	/* tells glut to use a particular display function to redraw */
 	glutDisplayFunc(display);
@@ -240,7 +264,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	glutMouseFunc(mousebutton);
 
 	/* do initialization */
-	myinit();
+	initialize();
 
 	glutMainLoop();
 	return 0;
