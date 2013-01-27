@@ -63,6 +63,14 @@ void saveScreenshot (char *filename)
   pic_free(in);
 }
 
+void positionCamera() { // This method will set the camera to point and be in the appropriate places
+	gluLookAt(
+		0.0, 0.0, -3.0, // Where camera should point
+		0.0, 0.0, 0.0,  // Camera Placement
+		0.0, 1.0, 0.0   // The "up" vector, which in my case, is the Unit Y Vector
+	);
+}
+
 void myinit()
 {
   /* setup gl view here */
@@ -79,7 +87,9 @@ void display()
   /* you may also want to precede it with your 
 rotation/translation/scaling */
 
-	glClear(GL_COLOR_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	
 
 	glBegin(GL_POLYGON);
 
@@ -94,6 +104,31 @@ rotation/translation/scaling */
 
 	glEnd();
 	glutSwapBuffers();
+}
+
+void reshape(int w, int h) { // This function will project the contents of the program correctly
+	glViewport(0, 0, (GLsizei)w, (GLsizei)h); // Set the clipping area of the window to be correct
+
+	// Set the matrix mode to projection, so that this will actually work
+	glMatrixMode(GL_PROJECTION);
+
+	// Now begin the actual reshaping
+	glLoadIdentity(); // Reset the matrix
+
+	// Set up the perspective projection matrix
+	gluPerspective(45.0, (double)w/h, 0.1, 100.0);
+	
+	positionCamera(); // Sets the camera position
+
+	/*
+		Viewing Angle: 45
+		Aspect Ratio: 1.333 (4:3)
+		Near Clipping Plane: 0.5
+		Far  "            ": 1.0
+	*/
+	// Set the matrix mode back to modelView, so things do not get messed up
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity(); // Reset the matrix
 }
 
 void menufunc(int value)
@@ -242,6 +277,9 @@ int main(int argc, char* argv[])
 
 	/* tells glut to use a particular display function to redraw */
 	glutDisplayFunc(display);
+
+	// Add in the reshape function, so that the camera is aligned to the proper aspect ratio, and that the window draws correctly
+	glutReshapeFunc(reshape);
   
 	/* allow the user to quit using the right mouse button menu */
 	g_iMenuId = glutCreateMenu(menufunc);
