@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <GL/glu.h>
 #include <GL/glut.h>
+#include <cmath>
 
 // Include other libraries
 #include <iostream>
@@ -32,6 +33,12 @@ CONTROLSTATE g_ControlState = ROTATE;
 float g_vLandRotate[3] = {0.0, 0.0, 0.0};
 float g_vLandTranslate[3] = {0.0, 0.0, 0.0};
 float g_vLandScale[3] = {1.0, 1.0, 1.0};
+
+/***** Values for scaling mouse enabled rotation/translation/scaling to make mouse movement easier*****/
+float translateMultDPI = 0.5;
+float rotationMultDPI = 1;
+float scaleMultDPI = 1;
+/***** *****/
 
 /* see <your pic directory>/pic.h for type Pic */
 Pic * g_pHeightData;
@@ -83,8 +90,6 @@ void myinit()
 	glEnable(GL_DEPTH_TEST);
 }
 
-float rotationTest = 0;
-
 void display()
 {
   /* draw 1x1 cube about origin */
@@ -94,11 +99,27 @@ rotation/translation/scaling */
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	glLoadIdentity();
+	glLoadIdentity(); // Reset the Matrix
 
-	glPushMatrix();
+	glPushMatrix(); // Push on the new transformations that are about to be done
+	
+	glTranslatef(
+		(translateMultDPI * -g_vLandTranslate[0]), // Inverting this value (multiplying by -1) made it so that the shape followed the mouse for a-axis translations
+		(translateMultDPI * g_vLandTranslate[1]),
+		(translateMultDPI * g_vLandTranslate[2])
+	); // Translate the matrix
 
-	glRotatef(rotationTest, 1.0, 0.0, 0.0);
+	glRotatef(g_vLandRotate[0], 1, 0, 0); // Rotate along the x-axis
+	glRotatef(-g_vLandRotate[1], 0, 1, 0); // Rotate along the y-axis - This value was inverted (multiplied by -1) because it made more sense to me to invert the Y-axis rotation; it's what I am used to.
+	glRotatef(g_vLandRotate[2], 0, 0, 1); // Rotate along the z-axis
+
+	glScalef(
+		(scaleMultDPI * g_vLandScale[0]),
+		(scaleMultDPI * g_vLandScale[1]),
+		(scaleMultDPI * g_vLandScale[2])
+	); // Scale the Matrix
+
+	// Begin drawing the heightField, well, my polygon to start
 
 	glBegin(GL_POLYGON);
 
@@ -114,31 +135,6 @@ rotation/translation/scaling */
 	glEnd();
 
 	glPopMatrix();
-
-//----------
-
-	glPushMatrix();
-	
-	glTranslatef(0.5, 0.5, -0.5);
-	glRotatef(-rotationTest, 1.0, 0.0, 0.0);
-	glScalef(0.5, 0.5, -0.5);
-	
-	glBegin(GL_POLYGON);
-
-		glColor3f(1.0, 1.0, 1.0);
-		glVertex3f(-0.5, -0.5, 0.0);
-		glColor3f(0.0, 0.0, 1.0);
-		glVertex3f(-0.5, 0.5, 0.0);
-		glColor3f(0.0, 0.0, 0.0);
-		glVertex3f(0.5, 0.5, 0.0);
-		glColor3f(1.0, 1.0, 0.0);
-		glVertex3f(0.5, -0.5, 0.0);
-
-	glEnd();
-
-	glPopMatrix();
-
-	rotationTest++;
 
 	glutSwapBuffers();
 }
