@@ -73,12 +73,17 @@ void positionCamera() { // This method will set the camera to point and be in th
 
 void myinit()
 {
-  /* setup gl view here */
-  glClearColor(0.0, 0.0, 0.0, 0.0);
+	/* setup gl view here */
+	glClearColor(0.0, 0.0, 0.0, 0.0);
 
-  /* Set up the shading type*/
-  glShadeModel(GL_SMOOTH);
+	/* Set up the shading type*/
+	glShadeModel(GL_SMOOTH);
+
+	// Enable the Depth test so that z-buffering is enabled
+	glEnable(GL_DEPTH_TEST);
 }
+
+float rotationTest = 0;
 
 void display()
 {
@@ -89,7 +94,11 @@ rotation/translation/scaling */
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	
+	glLoadIdentity();
+
+	glPushMatrix();
+
+	glRotatef(rotationTest, 1.0, 0.0, 0.0);
 
 	glBegin(GL_POLYGON);
 
@@ -103,6 +112,34 @@ rotation/translation/scaling */
 		glVertex3f(0.5, -0.5, 0.0);
 
 	glEnd();
+
+	glPopMatrix();
+
+//----------
+
+	glPushMatrix();
+	
+	glTranslatef(0.5, 0.5, -0.5);
+	glRotatef(-rotationTest, 1.0, 0.0, 0.0);
+	glScalef(0.5, 0.5, -0.5);
+	
+	glBegin(GL_POLYGON);
+
+		glColor3f(1.0, 1.0, 1.0);
+		glVertex3f(-0.5, -0.5, 0.0);
+		glColor3f(0.0, 0.0, 1.0);
+		glVertex3f(-0.5, 0.5, 0.0);
+		glColor3f(0.0, 0.0, 0.0);
+		glVertex3f(0.5, 0.5, 0.0);
+		glColor3f(1.0, 1.0, 0.0);
+		glVertex3f(0.5, -0.5, 0.0);
+
+	glEnd();
+
+	glPopMatrix();
+
+	rotationTest++;
+
 	glutSwapBuffers();
 }
 
