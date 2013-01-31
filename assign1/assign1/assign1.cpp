@@ -41,7 +41,8 @@ float scaleMultDPI = 1;
 /***** *****/
 
 /* see <your pic directory>/pic.h for type Pic */
-Pic * g_pHeightData;
+Pic* g_pHeightData;
+int g_pSizeData; // This value will hold the image size of the related Pic Struct Pointer above
 
 /* Write a screenshot to the specified filename */
 void saveScreenshot (char *filename)
@@ -99,6 +100,8 @@ rotation/translation/scaling */
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+	glMatrixMode(GL_MODELVIEW); // Set mode to ModelView Here, just to be sure...
+
 	glLoadIdentity(); // Reset the Matrix
 
 	glPushMatrix(); // Push on the new transformations that are about to be done
@@ -122,7 +125,7 @@ rotation/translation/scaling */
 	// Begin drawing the heightField, well, my polygon to start
 
 	glBegin(GL_POLYGON);
-
+		///*
 		glColor3f(1.0, 1.0, 1.0);
 		glVertex3f(-0.5, -0.5, 0.0);
 		glColor3f(0.0, 0.0, 1.0);
@@ -131,6 +134,18 @@ rotation/translation/scaling */
 		glVertex3f(0.5, 0.5, 0.0);
 		glColor3f(1.0, 1.0, 0.0);
 		glVertex3f(0.5, -0.5, 0.0);
+		//*/
+		// Top Face
+		/*
+		glColor3f(1.0, 1.0, 1.0);
+		glVertex3f(-0.5, 0.0, -0.5);
+		glColor3f(0.0, 0.0, 1.0);
+		glVertex3f(-0.5, 0.0, 0.5);
+		glColor3f(0.0, 0.0, 0.0);
+		glVertex3f(0.5, 0.0, 0.5);
+		glColor3f(1.0, 1.0, 0.0);
+		glVertex3f(0.5, 0.0, -0.5);
+		*/
 
 	glEnd();
 
@@ -281,15 +296,30 @@ int main(int argc, char* argv[])
 		exit(1);
 	}
 
-	g_pHeightData = jpeg_read((char*)argv[1], NULL);
+	g_pHeightData = jpeg_read((char*)argv[1], NULL); // This will return a Pic struct with information about the image relating to the heightField
+
 	if (!g_pHeightData)
 	{
 	    printf ("error reading %s.\n", argv[1]);
 	    exit(1);
 	}
 	
+
 	for (int i = 0; i < argc; i++)
 		std::cout << "argv[" << i << "] = " << argv[i] << std::endl;
+
+
+	std::cout << "Image x Size: " << g_pHeightData->nx << " Image Y Size: " << g_pHeightData->ny << " BPP:" << g_pHeightData->bpp << std::endl;
+	std::cout << "Testing run through values." << std::endl;
+	for (int y = 0; y >= 0; y--) {
+		for (int x = 0; x >= 0; x--) {
+			std::cout << "Height Value at Pixel Red: " << x << ", " << y << " = " << (float)PIC_PIXEL(g_pHeightData, x, y, 0) << std::endl;
+			std::cout << "Height Value at Pixel Green: " << x << ", " << y << " = " << (float)PIC_PIXEL(g_pHeightData, x, y, 1) << std::endl;
+			std::cout << "Height Value at Pixel Blue: " << x << ", " << y << " = " << (float)PIC_PIXEL(g_pHeightData, x, y, 2) << std::endl;
+		}
+	}
+
+	std::cout << (int)g_pHeightData->pix[256] << std::endl;
 
 	glutInit(&argc,argv);
   
@@ -332,6 +362,10 @@ int main(int argc, char* argv[])
 
 	/* do initialization */
 	myinit();
+
+	/* Temporary Testing To See how image stuff works. */
+
+	
 
 	glutMainLoop();
 	return 0;
