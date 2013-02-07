@@ -46,7 +46,7 @@ float HF_SCALE = 2;
 /***** Constants for pixel depth *****/
 float PIX_DEPTH = 255;
 float HEIGHT_DECREMENT = 0.25;
-float GRID_OFFSET = 0.000001; // For the triangle grid, the lines will draw slightly ABOVE the triangles so they are visible
+float GRID_OFFSET = 0.00001; // For the triangle grid, the lines will draw slightly ABOVE the triangles so they are visible
 
 /***** Values that determine the state of what to diaplay *****/
 enum drawType {VERTEX, GRID, TRIANGLE, TRIANGLE_GRID}; // Will determine HOW to draw the heightfield
@@ -111,7 +111,7 @@ void myinit()
 	drawColorType = ALL;
 }
 
-void createVertex(int x, int y) { // This function takes in an x,y coordinate and creates a vertex -- can be used in all drawing functions -- all that has to be changed is the ordering of the loop
+void createVertex(int x, int y, float offSet) { // This function takes in an x,y coordinate and creates a vertex -- can be used in all drawing functions -- all that has to be changed is the ordering of the loop
 		float redPixValue = (float)PIC_PIXEL(g_pHeightData, x, y, 0); // Will get the red pixel value from the image
 		float bluPixValue = (float)PIC_PIXEL(g_pHeightData, x, y, 1); // Will get the red pixel value from the image
 		float grnPixValue = (float)PIC_PIXEL(g_pHeightData, x, y, 2); // Will get the red pixel value from the image
@@ -137,24 +137,21 @@ void createVertex(int x, int y) { // This function takes in an x,y coordinate an
 			
 		// Find the value first in terms of pixel depth
 		float heightValue = 0; // This value will detemine the pixel's height values in terms of the depth field
-			
-		if (g_pHeightData->bpp == 1) { // The image is ALL, therefore, average the values for the height
-			heightValue = (redPixValue + bluPixValue + grnPixValue)/3;
+		
+		// Depending on which color mode is set, you can see the height that averages from all three pixel values, or a height that results from the values of an individual channel
+		if (drawColorType == RED) { 
+			heightValue = redPixValue;
 		}
-		if (g_pHeightData->bpp == 3) { // The image is colored, therefore, get the height value for the channel that is selected -- COMING SOON!
-				if (drawColorType == RED) { 
-					heightValue = redPixValue;
-				}
-				else if (drawColorType == GREEN) { 
-					heightValue = grnPixValue;
-				}
-				else if (drawColorType == BLUE) { 
-					heightValue = bluPixValue;
-				}
-				else if (drawColorType == ALL) { 
-					heightValue = (redPixValue + bluPixValue + grnPixValue)/3;;
-				}
+		else if (drawColorType == GREEN) { 
+			heightValue = grnPixValue;
 		}
+		else if (drawColorType == BLUE) { 
+			heightValue = bluPixValue;
+		}
+		else if (drawColorType == ALL) { 
+			heightValue = (redPixValue + bluPixValue + grnPixValue)/3;;
+		}
+	
 
 		// Now, begin actually making the point
 
@@ -176,25 +173,170 @@ void createVertex(int x, int y) { // This function takes in an x,y coordinate an
 			glColor3f(heightValue, heightValue, 1.0); 
 		}
 
+		if (offSet != 0) { // Draw Grid Black so it is visible against the triangles
+			glColor3f(0.5, 0.5, 0.5); 
+		}
+
 		// Step 2: Set up the point -- Scale the y
-		glVertex3f(xPosition, heightValue*HEIGHT_DECREMENT, zPosition);
+		glVertex3f(xPosition, (heightValue*HEIGHT_DECREMENT) + offSet, zPosition);
 	return;
 }
 
 void drawPoints() { // Will draw the points of a heightField
 	for (int y = 0; y < g_pHeightData->ny; y++) {
 		for (int x = 0; x < g_pHeightData->nx; x++) {
-			createVertex(x, y); // Will create the vertex -- saves on code rewriting
+			createVertex(x, y, 0); // Will create the vertex -- saves on code rewriting
 		}
 	}
 }
 
 void drawLines(float offset) {
+	// Draw Lines Horizontally like this
+	/*
+	1------2
+	*/
+	for (int y = 0; y < g_pHeightData->ny; y++) {
+		for (int x = 0; x < g_pHeightData->nx - 1; x++) { // Making 2 sets of lines on x per iteration, so subtract 1 from total loop
+			createVertex(x, y, offset); // Will create the vertex -- saves on code rewriting
+			createVertex(x + 1, y, offset); // Will create the vertex -- saves on code rewriting
+		}
+	}	
 
+	// Draw Lines Vertically like this
+	/*
+	1
+	|
+	|
+	|
+	|
+	|
+	|
+	2
+	*/
+	for (int x = 0; x < g_pHeightData->nx; x++) {
+		for (int y = 0; y < g_pHeightData->ny - 1; y++) { // Making 2 sets of lines on y per iteration, so subtract 1 from total loop
+			createVertex(x, y, offset); // Will create the vertex -- saves on code rewriting
+			createVertex(x, y + 1, offset); // Will create the vertex -- saves on code rewriting
+		}
+	}
+
+	// Draw Left Diagonal Lines like this
+	/*
+	       1
+	      /
+	     /
+	    /
+	   /
+	  /
+	 /
+	2
+	*/
+	for (int y = 0; y < g_pHeightData->ny - 1; y++) { // I'm drawing with 2 rows to start, so the loop will terminate 1 row quicker
+		for (int x = 1; x < g_pHeightData->nx; x++) { // x value starts at right and moves left
+			createVertex(x, y, offset); // Will create the vertex -- saves on code rewriting
+			// Make the second vertex 1 unit down and 1 unit left
+			createVertex(x - 1, y + 1, offset); // Will create the vertex -- saves on code rewriting
+		}
+	}	
+
+	// Draw Right Diagonal Lines like this
+	/*
+	1
+	 \      
+	  \    
+	   \    
+	    \   
+	     \ 
+	      \
+	       2
+	*/
+	for (int y = 0; y < g_pHeightData->ny - 1; y++) { // I'm drawing with 2 rows to start, so the loop will terminate 1 row quicker
+		for (int x = 0; x < g_pHeightData->nx - 1; x++) { // x value starts at left and moves right
+			createVertex(x, y, offset); // Will create the vertex -- saves on code rewriting
+			// Make the second vertex 1 unit down and 1 unit left
+			createVertex(x + 1, y + 1, offset); // Will create the vertex -- saves on code rewriting
+		}
+	}	
 }
 
 void drawTriangles() {
+	for (int y = 0; y < g_pHeightData->ny- 1; y++) {
+		for (int x = 0; x < g_pHeightData->nx - 1; x++) { // Making 2 sets of lines on x per iteration, so subtract 1 from total loop
+			// Drawing triangles in triangle strip like this
+			/*
+			2------4 (Upper Pixel Row)
+			|\    /|
+			| \  / |
+			|  \/  |
+			|  /\  |
+			| /  \ |
+			|/    \|
+			1------3 (Lower Pixel Row)
 
+			Summary:
+			- Start with 1 in top left corner of upper row
+			- Loop 2's and 3's until the end of top row
+			- End with 4
+			- Loop this process until finished with heightfield
+
+			*/
+
+			/*
+			// Draw (1) to start
+			if (x == 0) {
+				createVertex(x, y + 1, 0); // Will create the vertex -- saves on code rewriting
+			}
+
+			if (y % 2 == 0) {
+				// Draw (2)
+				createVertex(x, y, 0); // Will create the vertex -- saves on code rewriting
+
+				// Draw (3)
+				createVertex(x + 1, y +1, 0); // Will create the vertex -- saves on code rewriting
+			}
+			else {
+				// Draw (3)
+				createVertex(x + 1, y +1, 0); // Will create the vertex -- saves on code rewriting
+
+				// Draw (2)
+				createVertex(x, y, 0); // Will create the vertex -- saves on code rewriting
+
+			}
+
+			// Draw (4) to end
+			if (x == g_pHeightData->nx - 1) {
+				createVertex(x + 1, y, 0); // Will create the vertex -- saves on code rewriting
+			}	
+			*/
+
+			// GL_TRIANGLES algorithm
+			
+			// Draw Indexes (2), (1), (4)
+
+			// Draw (2)
+			createVertex(x, y, 0); // Will create the vertex -- saves on code rewriting
+
+			// Draw (1)
+			createVertex(x, y + 1, 0); // Will create the vertex -- saves on code rewriting
+
+			// Draw (4)
+			createVertex(x + 1, y, 0); // Will create the vertex -- saves on code rewriting
+
+			//
+			// Draw Index (1), (3), (4)
+			//
+
+			// Draw (1)
+			createVertex(x, y + 1, 0); // Will create the vertex -- saves on code rewriting
+
+			// Draw (3)
+			createVertex(x + 1, y + 1, 0); // Will create the vertex -- saves on code rewriting
+
+			// Draw (4)
+			createVertex(x + 1, y, 0); // Will create the vertex -- saves on code rewriting
+
+		}
+	}	
 }
 
 void display()
@@ -238,11 +380,13 @@ rotation/translation/scaling */
 			drawLines(0);
 	}
 	else if (drawState == TRIANGLE) { // Then draw triangles
-		glBegin(GL_TRIANGLE_STRIP);
+		//glFrontFace(GL_CW);
+		glBegin(GL_TRIANGLES);
 			drawTriangles();
 	}
 	else if (drawState == TRIANGLE_GRID) { // Then draw the trangle grid
-		glBegin(GL_POINTS);
+		//glFrontFace(GL_CW);
+		glBegin(GL_TRIANGLES);
 			drawTriangles();
 		glEnd();
 			glBegin(GL_LINES);
