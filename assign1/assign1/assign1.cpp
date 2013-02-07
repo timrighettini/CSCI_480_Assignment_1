@@ -108,6 +108,9 @@ void myinit()
 	glDepthMask(GL_TRUE);
 	glEnable(GL_DEPTH_TEST);
 
+	// Enable polygon offser
+	glEnable(GL_POLYGON_OFFSET_LINE);
+
 	// Set my state enums
 	drawState = VERTEX;
 	drawColorType = ALL;
@@ -193,6 +196,9 @@ void drawPoints() { // Will draw the points of a heightField
 }
 
 void drawLines(float offset) {
+	// Set the polygon offset
+	glPolygonOffset((GLfloat)offset, 1);
+	
 	// Draw Lines Horizontally like this
 	/*
 	1------2
