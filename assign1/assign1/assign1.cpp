@@ -40,6 +40,21 @@ float rotationMultDPI = 1;
 float scaleMultDPI = 1;
 /***** *****/
 
+/***** Multiplier used to change the starting size of the heightfield *****/
+float HF_SCALE = 2;
+
+/***** Constants for pixel depth *****/
+float PIX_DEPTH = 255;
+float HEIGHT_DECREMENT = 0.25;
+float GRID_OFFSET = 0.000001; // For the triangle grid, the lines will draw slightly ABOVE the triangles so they are visible
+
+/***** Values that determine the state of what to diaplay *****/
+enum drawType {VERTEX, GRID, TRIANGLE, TRIANGLE_GRID}; // Will determine HOW to draw the heightfield
+enum drawType drawState; // Instantiate the enum
+
+enum drawColor {RED, GREEN, BLUE, ALL}; // Will determine WHAT COLOR to DRAW and MAKE HEIGHT VALUES from
+enum drawColor drawColorType; // Instantiate the enum
+
 /* see <your pic directory>/pic.h for type Pic */
 Pic* g_pHeightData;
 int g_pSizeData; // This value will hold the image size of the related Pic Struct Pointer above
@@ -87,8 +102,99 @@ void myinit()
 	/* Set up the shading type*/
 	glShadeModel(GL_SMOOTH);
 
-	// Enable the Depth test so that z-buffering is enabled
+	// Enable the Depth Test and Mask so that z-buffering is enabled correctly
+	glDepthMask(GL_TRUE);
 	glEnable(GL_DEPTH_TEST);
+
+	// Set my state enums
+	drawState = VERTEX;
+	drawColorType = ALL;
+}
+
+void createVertex(int x, int y) { // This function takes in an x,y coordinate and creates a vertex -- can be used in all drawing functions -- all that has to be changed is the ordering of the loop
+		float redPixValue = (float)PIC_PIXEL(g_pHeightData, x, y, 0); // Will get the red pixel value from the image
+		float bluPixValue = (float)PIC_PIXEL(g_pHeightData, x, y, 1); // Will get the red pixel value from the image
+		float grnPixValue = (float)PIC_PIXEL(g_pHeightData, x, y, 2); // Will get the red pixel value from the image
+
+		// Set up position for the height field
+		float lengthOfImageX = g_pHeightData->nx;
+		float lengthOfImageZ = g_pHeightData->ny;
+
+		// Find the x position of the point in the heightfield
+		float xPosition = (((float)x/lengthOfImageX) * HF_SCALE) - (HF_SCALE/2);
+		/* How this works:
+		1.  Normalize the position of the pixel in one axis relative to the size of the image IN THAT AXIS
+		2.  Multiply this value by a scaling constant that increases the size of this normalized value
+		3.  Subtract this value by half the scaling constant to align this pixel to a position relative to the center of the screen
+
+		-- This algorithm will be used to find the posiiton of the z-value too
+		*/
+
+		// Find the z (NOT the y) position  "                "
+		float zPosition = (((float)y/lengthOfImageZ) * HF_SCALE) - (HF_SCALE/2);
+
+		// Find the height (THIS is y)      "                "
+			
+		// Find the value first in terms of pixel depth
+		float heightValue = 0; // This value will detemine the pixel's height values in terms of the depth field
+			
+		if (g_pHeightData->bpp == 1) { // The image is ALL, therefore, average the values for the height
+			heightValue = (redPixValue + bluPixValue + grnPixValue)/3;
+		}
+		if (g_pHeightData->bpp == 3) { // The image is colored, therefore, get the height value for the channel that is selected -- COMING SOON!
+				if (drawColorType == RED) { 
+					heightValue = redPixValue;
+				}
+				else if (drawColorType == GREEN) { 
+					heightValue = grnPixValue;
+				}
+				else if (drawColorType == BLUE) { 
+					heightValue = bluPixValue;
+				}
+				else if (drawColorType == ALL) { 
+					heightValue = (redPixValue + bluPixValue + grnPixValue)/3;;
+				}
+		}
+
+		// Now, begin actually making the point
+
+		// Step 1:  Set up color relative to the height and the color channel selected
+
+		// Normalize this heightValue
+		heightValue = heightValue/PIX_DEPTH;
+
+		if (drawColorType == ALL) { 
+			glColor3f(1.0, heightValue, 1.0); 
+		}
+		else if (drawColorType == RED) { 
+			glColor3f(1.0, heightValue, heightValue); 
+		}
+		else if (drawColorType == GREEN) { 
+			glColor3f(heightValue, 1.0, heightValue); 
+		}
+		else if (drawColorType == BLUE) { 
+			glColor3f(heightValue, heightValue, 1.0); 
+		}
+
+		// Step 2: Set up the point -- Scale the y
+		glVertex3f(xPosition, heightValue*HEIGHT_DECREMENT, zPosition);
+	return;
+}
+
+void drawPoints() { // Will draw the points of a heightField
+	for (int y = 0; y < g_pHeightData->ny; y++) {
+		for (int x = 0; x < g_pHeightData->nx; x++) {
+			createVertex(x, y); // Will create the vertex -- saves on code rewriting
+		}
+	}
+}
+
+void drawLines(float offset) {
+
+}
+
+void drawTriangles() {
+
 }
 
 void display()
@@ -98,7 +204,7 @@ void display()
   /* you may also want to precede it with your 
 rotation/translation/scaling */
 
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Obviously, clear these values, or KABOOM!!!
 
 	glMatrixMode(GL_MODELVIEW); // Set mode to ModelView Here, just to be sure...
 
@@ -109,11 +215,11 @@ rotation/translation/scaling */
 	glTranslatef(
 		(translateMultDPI * -g_vLandTranslate[0]), // Inverting this value (multiplying by -1) made it so that the shape followed the mouse for a-axis translations
 		(translateMultDPI * g_vLandTranslate[1]),
-		(translateMultDPI * g_vLandTranslate[2])
+		(translateMultDPI * -g_vLandTranslate[2])
 	); // Translate the matrix
 
-	glRotatef(g_vLandRotate[0], 1, 0, 0); // Rotate along the x-axis
-	glRotatef(-g_vLandRotate[1], 0, 1, 0); // Rotate along the y-axis - This value was inverted (multiplied by -1) because it made more sense to me to invert the Y-axis rotation; it's what I am used to.
+	glRotatef(-g_vLandRotate[0], 1, 0, 0); // Rotate along the x-axis - This value was inverted (multiplied by -1) because it made more sense to me to invert the X-axis rotation; it's what I am used to. (Autodesk Maya usage)
+	glRotatef(-g_vLandRotate[1], 0, 1, 0); // Rotate along the y-axis - This value was inverted (multiplied by -1) because it made more sense to me to invert the Y-axis rotation; it's what I am used to. (Autodesk Maya usage)
 	glRotatef(g_vLandRotate[2], 0, 0, 1); // Rotate along the z-axis
 
 	glScalef(
@@ -123,29 +229,25 @@ rotation/translation/scaling */
 	); // Scale the Matrix
 
 	// Begin drawing the heightField, well, my polygon to start
-
-	glBegin(GL_POLYGON);
-		///*
-		glColor3f(1.0, 1.0, 1.0);
-		glVertex3f(-0.5, -0.5, 0.0);
-		glColor3f(0.0, 0.0, 1.0);
-		glVertex3f(-0.5, 0.5, 0.0);
-		glColor3f(0.0, 0.0, 0.0);
-		glVertex3f(0.5, 0.5, 0.0);
-		glColor3f(1.0, 1.0, 0.0);
-		glVertex3f(0.5, -0.5, 0.0);
-		//*/
-		// Top Face
-		/*
-		glColor3f(1.0, 1.0, 1.0);
-		glVertex3f(-0.5, 0.0, -0.5);
-		glColor3f(0.0, 0.0, 1.0);
-		glVertex3f(-0.5, 0.0, 0.5);
-		glColor3f(0.0, 0.0, 0.0);
-		glVertex3f(0.5, 0.0, 0.5);
-		glColor3f(1.0, 1.0, 0.0);
-		glVertex3f(0.5, 0.0, -0.5);
-		*/
+	if (drawState == VERTEX) { // Then draw points
+		glBegin(GL_POINTS);
+			drawPoints();
+	}
+	else if (drawState == GRID) { // Then draw lines
+		glBegin(GL_LINES);
+			drawLines(0);
+	}
+	else if (drawState == TRIANGLE) { // Then draw triangles
+		glBegin(GL_TRIANGLE_STRIP);
+			drawTriangles();
+	}
+	else if (drawState == TRIANGLE_GRID) { // Then draw the trangle grid
+		glBegin(GL_POINTS);
+			drawTriangles();
+		glEnd();
+			glBegin(GL_LINES);
+			drawLines(GRID_OFFSET);
+	}
 
 	glEnd();
 
@@ -164,7 +266,7 @@ void reshape(int w, int h) { // This function will project the contents of the p
 	glLoadIdentity(); // Reset the matrix
 
 	// Set up the perspective projection matrix
-	gluPerspective(45.0, (double)w/h, 0.1, 100.0);
+	gluPerspective(60.0, (double)w/h, 0.01, 1000.0);
 	
 	positionCamera(); // Sets the camera position
 
@@ -282,6 +384,37 @@ void mousebutton(int button, int state, int x, int y)
   g_vMousePos[1] = y;
 }
 
+// New keyboard function -- switches between drawing states for triagles, lines, points, and colors
+void keyPressed(unsigned char key, int x, int y) {	
+	
+	if (key == 'q') { // then set drawing to points
+		drawState = VERTEX;
+	}
+	if (key == 'w') { // then set drawing to lines
+		drawState = GRID;
+	}
+	if (key == 'e') { // then set drawing to triangles
+		drawState = TRIANGLE;
+	}
+	if (key == 'r') { // then set drawing to triangle mesh
+		drawState = TRIANGLE_GRID;
+	}
+
+	if (key == 'a') { // then set drawing color to ALL
+			drawColorType = ALL;
+	}
+	if (key == 's') { // then set drawing color to red
+			drawColorType = RED;
+	}
+	if (key == 'd') { // then set drawing color to green
+			drawColorType = GREEN;
+	}
+	if (key == 'f') { // then set drawing color to blue
+			drawColorType = BLUE;
+	}
+
+}
+
 int main(int argc, char* argv[])
 {
 	// I've set the argv[1] to spiral.jpg.
@@ -359,6 +492,9 @@ int main(int argc, char* argv[])
 	glutPassiveMotionFunc(mouseidle);
 	/* callback for mouse button changes */
 	glutMouseFunc(mousebutton);
+
+	// Callback for keyboard function
+	glutKeyboardFunc(keyPressed);
 
 	/* do initialization */
 	myinit();
