@@ -55,6 +55,8 @@ enum drawType drawState; // Instantiate the enum
 enum drawColor {RED, GREEN, BLUE, ALL}; // Will determine WHAT COLOR to DRAW and MAKE HEIGHT VALUES from
 enum drawColor drawColorType; // Instantiate the enum
 
+bool backFaceCullingActive = false;
+
 /* see <your pic directory>/pic.h for type Pic */
 Pic* g_pHeightData;
 int g_pSizeData; // This value will hold the image size of the related Pic Struct Pointer above
@@ -220,43 +222,45 @@ void drawLines(float offset) {
 		}
 	}
 
-	// Draw Left Diagonal Lines like this
-	/*
-	       1
-	      /
-	     /
-	    /
-	   /
-	  /
-	 /
-	2
-	*/
-	for (int y = 0; y < g_pHeightData->ny - 1; y++) { // I'm drawing with 2 rows to start, so the loop will terminate 1 row quicker
-		for (int x = 1; x < g_pHeightData->nx; x++) { // x value starts at right and moves left
-			createVertex(x, y, offset); // Will create the vertex -- saves on code rewriting
-			// Make the second vertex 1 unit down and 1 unit left
-			createVertex(x - 1, y + 1, offset); // Will create the vertex -- saves on code rewriting
-		}
-	}	
+	if (offset == 0) { // Saves on computation with the GL_TRIANGLES in tandem
+		// Draw Left Diagonal Lines like this
+		/*
+			   1
+			  /
+			 /
+			/
+		   /
+		  /
+		 /
+		2
+		*/
+		for (int y = 0; y < g_pHeightData->ny - 1; y++) { // I'm drawing with 2 rows to start, so the loop will terminate 1 row quicker
+			for (int x = 1; x < g_pHeightData->nx; x++) { // x value starts at right and moves left
+				createVertex(x, y, offset); // Will create the vertex -- saves on code rewriting
+				// Make the second vertex 1 unit down and 1 unit left
+				createVertex(x - 1, y + 1, offset); // Will create the vertex -- saves on code rewriting
+			}
+		}	
 
-	// Draw Right Diagonal Lines like this
-	/*
-	1
-	 \      
-	  \    
-	   \    
-	    \   
-	     \ 
-	      \
-	       2
-	*/
-	for (int y = 0; y < g_pHeightData->ny - 1; y++) { // I'm drawing with 2 rows to start, so the loop will terminate 1 row quicker
-		for (int x = 0; x < g_pHeightData->nx - 1; x++) { // x value starts at left and moves right
-			createVertex(x, y, offset); // Will create the vertex -- saves on code rewriting
-			// Make the second vertex 1 unit down and 1 unit left
-			createVertex(x + 1, y + 1, offset); // Will create the vertex -- saves on code rewriting
-		}
-	}	
+		// Draw Right Diagonal Lines like this
+		/*
+		1
+		 \      
+		  \    
+		   \    
+			\   
+			 \ 
+			  \
+			   2
+		*/
+		for (int y = 0; y < g_pHeightData->ny - 1; y++) { // I'm drawing with 2 rows to start, so the loop will terminate 1 row quicker
+			for (int x = 0; x < g_pHeightData->nx - 1; x++) { // x value starts at left and moves right
+				createVertex(x, y, offset); // Will create the vertex -- saves on code rewriting
+				// Make the second vertex 1 unit down and 1 unit left
+				createVertex(x + 1, y + 1, offset); // Will create the vertex -- saves on code rewriting
+			}
+		}	
+	}
 }
 
 void drawTriangles() {
@@ -292,11 +296,11 @@ void drawTriangles() {
 				createVertex(x, y, 0); // Will create the vertex -- saves on code rewriting
 
 				// Draw (3)
-				createVertex(x + 1, y +1, 0); // Will create the vertex -- saves on code rewriting
+				createVertex(x + 1, y + 1, 0); // Will create the vertex -- saves on code rewriting
 			}
 			else {
 				// Draw (3)
-				createVertex(x + 1, y +1, 0); // Will create the vertex -- saves on code rewriting
+				createVertex(x + 1, y + 1, 0); // Will create the vertex -- saves on code rewriting
 
 				// Draw (2)
 				createVertex(x, y, 0); // Will create the vertex -- saves on code rewriting
@@ -530,7 +534,7 @@ void mousebutton(int button, int state, int x, int y)
 
 // New keyboard function -- switches between drawing states for triagles, lines, points, and colors
 void keyPressed(unsigned char key, int x, int y) {	
-	
+	// Draw Options
 	if (key == 'q') { // then set drawing to points
 		drawState = VERTEX;
 	}
@@ -544,6 +548,7 @@ void keyPressed(unsigned char key, int x, int y) {
 		drawState = TRIANGLE_GRID;
 	}
 
+	// Color Options
 	if (key == 'a') { // then set drawing color to ALL
 			drawColorType = ALL;
 	}
@@ -557,6 +562,23 @@ void keyPressed(unsigned char key, int x, int y) {
 			drawColorType = BLUE;
 	}
 
+	// Culling Options
+	if (key == 'z') {
+		if (backFaceCullingActive == false) {	// Activate back face culling
+			glEnable(GL_CULL_FACE);
+			backFaceCullingActive = true;
+		}
+		else { // Deactivate back face culling
+			glDisable(GL_CULL_FACE);
+			backFaceCullingActive = false;
+		}
+	}
+	if (key == 'x') { // Cull Front Faces
+		glCullFace(GL_FRONT);
+	}
+	if (key == 'c') { // Cull Back Faces
+		glCullFace(GL_BACK);
+	}
 }
 
 int main(int argc, char* argv[])
