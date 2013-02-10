@@ -46,7 +46,7 @@ float HF_SCALE = 2;
 /***** Constants for pixel depth *****/
 float PIX_DEPTH = 255;
 float HEIGHT_DECREMENT = 0.25;
-float GRID_OFFSET = 0.00001; // For the triangle grid, the lines will draw slightly ABOVE the triangles so they are visible
+float GRID_OFFSET = 0.0001; // For the triangle grid, the lines will draw slightly ABOVE the triangles so they are visible
 
 /***** Values that determine the state of what to diaplay *****/
 enum drawType {VERTEX, GRID, TRIANGLE, TRIANGLE_GRID}; // Will determine HOW to draw the heightfield
@@ -60,6 +60,33 @@ bool backFaceCullingActive = false;
 /* see <your pic directory>/pic.h for type Pic */
 Pic* g_pHeightData;
 int g_pSizeData; // This value will hold the image size of the related Pic Struct Pointer above
+
+// Values that are used with drawing out vertexes
+float redPixValue = 0; // Will get the red pixel value from the image
+float bluPixValue = 0; // Will get the red pixel value from the image
+float grnPixValue = 0; // Will get the red pixel value from the image
+
+// Set up position for the height field
+float lengthOfImageX = 0;
+float lengthOfImageZ = 0;
+
+// Find the x position of the point in the heightfield
+float xPosition = 0;
+/* How this works:
+1.  Normalize the position of the pixel in one axis relative to the size of the image IN THAT AXIS
+2.  Multiply this value by a scaling constant that increases the size of this normalized value
+3.  Subtract this value by half the scaling constant to align this pixel to a position relative to the center of the screen
+
+-- This algorithm will be used to find the posiiton of the z-value too
+*/
+
+// Find the z (NOT the y) position  "                "
+float zPosition = 0;
+
+// Find the height (THIS is y)      "                "
+			
+// Find the value first in terms of pixel depth
+float heightValue = 0; // This value will detemine the pixel's height values in terms of the depth field
 
 /* Write a screenshot to the specified filename */
 void saveScreenshot (char *filename)
@@ -117,13 +144,15 @@ void myinit()
 }
 
 void createVertex(int x, int y, float offSet) { // This function takes in an x,y coordinate and creates a vertex -- can be used in all drawing functions -- all that has to be changed is the ordering of the loop
-		float redPixValue = (float)PIC_PIXEL(g_pHeightData, x, y, 0); // Will get the red pixel value from the image
-		float bluPixValue = (float)PIC_PIXEL(g_pHeightData, x, y, 1); // Will get the red pixel value from the image
-		float grnPixValue = (float)PIC_PIXEL(g_pHeightData, x, y, 2); // Will get the red pixel value from the image
+		redPixValue = (float)PIC_PIXEL(g_pHeightData, x, y, 0); // Will get the red pixel value from the image
+		bluPixValue = (float)PIC_PIXEL(g_pHeightData, x, y, 1); // Will get the red pixel value from the image
+		grnPixValue = (float)PIC_PIXEL(g_pHeightData, x, y, 2); // Will get the red pixel value from the image
 
-		// Set up position for the height field
+		///*
+		// Set up position for the height field -- attained after the image was loaded in
 		float lengthOfImageX = g_pHeightData->nx;
 		float lengthOfImageZ = g_pHeightData->ny;
+		//s*/
 
 		// Find the x position of the point in the heightfield
 		float xPosition = (((float)x/lengthOfImageX) * HF_SCALE) - (HF_SCALE/2);
@@ -188,27 +217,152 @@ void createVertex(int x, int y, float offSet) { // This function takes in an x,y
 }
 
 void drawPoints() { // Will draw the points of a heightField
+	glBegin(GL_POINTS);
 	for (int y = 0; y < g_pHeightData->ny; y++) {
 		for (int x = 0; x < g_pHeightData->nx; x++) {
 			createVertex(x, y, 0); // Will create the vertex -- saves on code rewriting
 		}
 	}
+	glEnd();
 }
 
 void drawLines(float offset) {
+	/*
+	1------4
+	|\    /|
+	| \  / |
+	|  \/  |
+	|  /\  |
+	| /  \ |
+	|/    \|
+	2------3
+
+	For Line Strip, draw like this:
+
+	For Box Grid:
+	(1) then (4) -- H-line loop
+	
+	(1) then (2) -- V-Line loop
+
+	(1) then (3) -- \-Line loop
+
+	(4) then (2) -- /-Line loop
+	
+	*/
+	/****** GL_LINE_STRIP algorithm ******/
+
+	if (offset == 0) { // Draw the diagonal line + horizontal line
+		// Draw Lines Horizontally like this
+		/*
+		2------1
+		*/
+		// AND THEN Draw Left Diagonal Lines like this
+		/*
+			   3
+			  /
+			 /
+			/
+		   /
+		  /
+		 /
+		2
+		*/
+		// Repeat until the end of a column - work from the bottom up
+		// More complicated loop -- allows for the left cross line
+		///*
+		for (int x = g_pHeightData->nx - 1; x > 0; x--) { // For every x
+			glBegin(GL_LINE_STRIP);
+			for (int y = g_pHeightData->ny - 1; y >= 0; y--) { // Draw a row from y
+				createVertex(x, y, offset); // Will create vertex 1, which will be connected from 2's in the next iteration of the loop
+				createVertex(x - 1, y, offset); // Will create vertex 2
+			}
+			glEnd();
+		}
+	}
+
+	else { // Allow for easy rendering with the Tris + Points
+		// Simplified Loop: Only draw horizontal line from (2) to (1)
+		///*
+		for (int y = 0; y < g_pHeightData->ny; y++) { // For Every x
+			glBegin(GL_LINE_STRIP);
+			for (int x = 0; x < g_pHeightData->nx; x++) { // Draw a column from y
+				createVertex(x, y, offset); // Will create vertex 2
+			}
+			glEnd();
+		}
+		//*/
+	}
+
+	if (offset == 0) { // Draw the right diagonal line + vertical line
+		/*
+		// Draw Lines Vertically like this right after
+		2
+		|
+		|
+		|
+		|
+		|
+		|
+		1	
+		// AND THEN Draw Right Diagonal Lines like this
+		/*
+		2
+		 \      
+		  \    
+		   \    
+			\   
+			 \ 
+			  \
+			   3
+		/*
+		// Repeat until at the end of a row
+		*/
+		// More complicated loop -- allows for the right cross line
+		///*
+		for (int y = 0; y < g_pHeightData->ny - 1; y++) { // For Every y
+			glBegin(GL_LINE_STRIP);
+			for (int x = 0; x < g_pHeightData->nx; x++) { // Draw a column from x
+				createVertex(x, y + 1, offset); // Will create vertex 1
+				createVertex(x, y, offset); // Will create vertex 2
+			}
+			glEnd();
+		}
+		//*/
+	}
+	else {  // Allow for easy rendering with the Tris + Points
+		// Simplifed Loop: Draw ONLY the vertical line from (2) to (1)
+		///*
+		for (int x = 0; x < g_pHeightData->nx; x++) { // For Every x
+			glBegin(GL_LINE_STRIP);
+			for (int y = 0; y < g_pHeightData->ny; y++) { // Draw a column from y
+				createVertex(x, y, offset); // Will create vertex 2
+			}
+			glEnd();
+		}
+		//*/
+	}
+
+	/**** GL_LINES Algorithm ****/
+
+	/*
+
 	// Set the polygon offset
 	glPolygonOffset((GLfloat)offset, 1);
+
+		glBegin(GL_LINES);
 	
 	// Draw Lines Horizontally like this
 	/*
 	1------2
 	*/
+	/*
 	for (int y = 0; y < g_pHeightData->ny; y++) {
 		for (int x = 0; x < g_pHeightData->nx - 1; x++) { // Making 2 sets of lines on x per iteration, so subtract 1 from total loop
 			createVertex(x, y, offset); // Will create the vertex -- saves on code rewriting
 			createVertex(x + 1, y, offset); // Will create the vertex -- saves on code rewriting
 		}
-	}	
+	}
+	//*/
 
 	// Draw Lines Vertically like this
 	/*
@@ -221,14 +375,16 @@ void drawLines(float offset) {
 	|
 	2
 	*/
+	/*
 	for (int x = 0; x < g_pHeightData->nx; x++) {
 		for (int y = 0; y < g_pHeightData->ny - 1; y++) { // Making 2 sets of lines on y per iteration, so subtract 1 from total loop
 			createVertex(x, y, offset); // Will create the vertex -- saves on code rewriting
 			createVertex(x, y + 1, offset); // Will create the vertex -- saves on code rewriting
 		}
 	}
+	//*/
 
-	if (offset == 0) { // Saves on computation with the GL_TRIANGLES in tandem
+	//if (offset == 0) { // Saves on computation with the GL_TRIANGLES in tandem
 		// Draw Left Diagonal Lines like this
 		/*
 			   1
@@ -240,6 +396,7 @@ void drawLines(float offset) {
 		 /
 		2
 		*/
+		/*
 		for (int y = 0; y < g_pHeightData->ny - 1; y++) { // I'm drawing with 2 rows to start, so the loop will terminate 1 row quicker
 			for (int x = 1; x < g_pHeightData->nx; x++) { // x value starts at right and moves left
 				createVertex(x, y, offset); // Will create the vertex -- saves on code rewriting
@@ -247,7 +404,7 @@ void drawLines(float offset) {
 				createVertex(x - 1, y + 1, offset); // Will create the vertex -- saves on code rewriting
 			}
 		}	
-
+		//*/
 		// Draw Right Diagonal Lines like this
 		/*
 		1
@@ -259,68 +416,58 @@ void drawLines(float offset) {
 			  \
 			   2
 		*/
+		/*
 		for (int y = 0; y < g_pHeightData->ny - 1; y++) { // I'm drawing with 2 rows to start, so the loop will terminate 1 row quicker
 			for (int x = 0; x < g_pHeightData->nx - 1; x++) { // x value starts at left and moves right
 				createVertex(x, y, offset); // Will create the vertex -- saves on code rewriting
 				// Make the second vertex 1 unit down and 1 unit left
 				createVertex(x + 1, y + 1, offset); // Will create the vertex -- saves on code rewriting
 			}
-		}	
-	}
+		}
+		//	
+		glEnd();
+		*/
+	//}
 }
 
 void drawTriangles() {
+	// Drawing triangles in triangle strip like this
+	/*
+	2------4 (Upper Pixel Row)
+	|\    /|
+	| \  / |
+	|  \/  |
+	|  /\  |
+	| /  \ |
+	|/    \|
+	1------3 (Lower Pixel Row)
+
+	Summary:
+	- Start with 1 in top left corner of upper row
+	- Loop 2's and 3's until the end of top row
+	- End with 4
+	- Loop this process until finished with heightfield
+
+	*/
+
+	/***** GL_TRIANGLE_STRIP algorithm *****/
+	for (int y = 0; y < g_pHeightData->ny - 1; y++) { // For Every y
+		glBegin(GL_TRIANGLE_STRIP);
+		for (int x = 0; x < g_pHeightData->nx; x++) { // Draw a column from x
+			createVertex(x, y + 1, 0); // Will create vertex 1, which in the next iteration will connect to vertex 2
+			createVertex(x, y, 0); // Will create vertex 2
+		}
+		glEnd();
+	}
+
+	/*
+	glBegin(GL_TRIANGLES);
 	for (int y = 0; y < g_pHeightData->ny- 1; y++) {
 		for (int x = 0; x < g_pHeightData->nx - 1; x++) { // Making 2 sets of lines on x per iteration, so subtract 1 from total loop
-			// Drawing triangles in triangle strip like this
-			/*
-			2------4 (Upper Pixel Row)
-			|\    /|
-			| \  / |
-			|  \/  |
-			|  /\  |
-			| /  \ |
-			|/    \|
-			1------3 (Lower Pixel Row)
 
-			Summary:
-			- Start with 1 in top left corner of upper row
-			- Loop 2's and 3's until the end of top row
-			- End with 4
-			- Loop this process until finished with heightfield
-
-			*/
-
-			/*
-			// Draw (1) to start
-			if (x == 0) {
-				createVertex(x, y + 1, 0); // Will create the vertex -- saves on code rewriting
-			}
-
-			if (y % 2 == 0) {
-				// Draw (2)
-				createVertex(x, y, 0); // Will create the vertex -- saves on code rewriting
-
-				// Draw (3)
-				createVertex(x + 1, y + 1, 0); // Will create the vertex -- saves on code rewriting
-			}
-			else {
-				// Draw (3)
-				createVertex(x + 1, y + 1, 0); // Will create the vertex -- saves on code rewriting
-
-				// Draw (2)
-				createVertex(x, y, 0); // Will create the vertex -- saves on code rewriting
-
-			}
-
-			// Draw (4) to end
-			if (x == g_pHeightData->nx - 1) {
-				createVertex(x + 1, y, 0); // Will create the vertex -- saves on code rewriting
-			}	
-			*/
-
-			// GL_TRIANGLES algorithm
+			/***** GL_TRIANGLES algorithm *****/
 			
+			/*
 			// Draw Indexes (2), (1), (4)
 
 			// Draw (2)
@@ -344,9 +491,10 @@ void drawTriangles() {
 
 			// Draw (4)
 			createVertex(x + 1, y, 0); // Will create the vertex -- saves on code rewriting
-
 		}
 	}	
+	glEnd();
+	*/
 }
 
 void display()
@@ -382,28 +530,19 @@ rotation/translation/scaling */
 
 	// Begin drawing the heightField, well, my polygon to start
 	if (drawState == VERTEX) { // Then draw points
-		glBegin(GL_POINTS);
-			drawPoints();
+		drawPoints();
 	}
 	else if (drawState == GRID) { // Then draw lines
-		glBegin(GL_LINES);
-			drawLines(0);
+		drawLines(0);
 	}
 	else if (drawState == TRIANGLE) { // Then draw triangles
-		//glFrontFace(GL_CW);
-		glBegin(GL_TRIANGLES);
-			drawTriangles();
+		drawTriangles();
 	}
 	else if (drawState == TRIANGLE_GRID) { // Then draw the trangle grid
 		//glFrontFace(GL_CW);
-		glBegin(GL_TRIANGLES);
-			drawTriangles();
-		glEnd();
-			glBegin(GL_LINES);
-			drawLines(GRID_OFFSET);
+		drawTriangles();
+		drawLines(GRID_OFFSET);
 	}
-
-	glEnd();
 
 	glPopMatrix();
 
