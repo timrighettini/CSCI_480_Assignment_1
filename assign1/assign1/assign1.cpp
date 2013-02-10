@@ -195,20 +195,36 @@ void createVertex(int x, int y, float offSet) { // This function takes in an x,y
 		heightValue = heightValue/PIX_DEPTH;
 
 		if (drawColorType == ALL) { 
-			glColor3f(1.0, heightValue, 1.0); 
+			if (offSet != 0) { // Draw Grid Black so it is visible against the triangles
+				glColor3f(0.65, heightValue, 0.65); 
+			}
+			else {
+				glColor3f(1.0, heightValue, 1.0); 
+			}
 		}
 		else if (drawColorType == RED) { 
-			glColor3f(1.0, heightValue, heightValue); 
+			if (offSet != 0) { // Draw Grid Black so it is visible against the triangles
+				glColor3f(0.65, heightValue, heightValue); 
+			}	
+			else {
+				glColor3f(1.0, heightValue, heightValue); 
+			}
 		}
 		else if (drawColorType == GREEN) { 
-			glColor3f(heightValue, 1.0, heightValue); 
+			if (offSet != 0) { // Draw Grid Black so it is visible against the triangles
+				glColor3f(heightValue, 0.65, heightValue); 
+			}
+			else {
+				glColor3f(heightValue, 1.0, heightValue); 
+			}
 		}
 		else if (drawColorType == BLUE) { 
-			glColor3f(heightValue, heightValue, 1.0); 
-		}
-
-		if (offSet != 0) { // Draw Grid Black so it is visible against the triangles
-			glColor3f(0.5, 0.5, 0.5); 
+			if (offSet != 0) { // Draw Grid Black so it is visible against the triangles
+				glColor3f(heightValue, heightValue, 0.65); 
+			}
+			else  {
+				glColor3f(heightValue, heightValue, 1.0); 
+			}
 		}
 
 		// Step 2: Set up the point -- Scale the y
