@@ -17,6 +17,8 @@
 
 // Include other libraries
 #include <iostream>
+#include <string>
+#include <sstream> 
 
 int g_iMenuId;
 
@@ -90,6 +92,12 @@ float zPosition = 0;
 			
 // Find the value first in terms of pixel depth
 float heightValue = 0; // This value will detemine the pixel's height values in terms of the depth field
+
+// Animation values
+bool saveScreenShotOn = false; // Will determine whether a screenshot is to be saved out or not
+int frameNum = 0; // Number of frames created for the animation
+char* fName; // Char array to be used for the correct handling of fileNames
+
 
 /* Write a screenshot to the specified filename */
 void saveScreenshot (char *filename)
@@ -230,8 +238,8 @@ void createVertex(int x, int y, float offSet) { // This function takes in an x,y
 			}
 		}
 
-		// Step 2: Set up the point -- Scale the y
-		glVertex3f(xPosition, (heightValue*HEIGHT_DECREMENT) + offSet, zPosition);
+	// Step 2: Set up the point -- Scale the y
+	glVertex3f(xPosition, (heightValue*HEIGHT_DECREMENT) + offSet, zPosition);
 	return;
 }
 
@@ -605,10 +613,37 @@ void menufunc(int value)
   }
 }
 
+char* createFileName() {
+	std::string name = "";
+	/*Append the appropriate number of 0's in front of the string*/
+	if (frameNum < 10) {
+		name.append("00");		
+	}
+	else if (frameNum < 100) {
+		name.append("0");
+	}
+
+	std::stringstream s; // Use this to convert the number into a string
+	s << frameNum; // Get the number in string format
+	name.append(s.str()); // Put that formatted number into a string	
+	name.append(".jpg"); // Need the image file type
+
+	std::cout << name << std::endl;
+
+	fName = new char[name.length() +1]; // Will be used to hold char* version of string
+	strcpy(fName, name.c_str()); // Copy it in 
+
+	return fName; // Return the fileName
+}
+
 void doIdle()
 {
   /* do some stuff... */
-
+	if (saveScreenShotOn == true) {
+		saveScreenshot(createFileName());
+		frameNum++;
+		delete[] fName; // Make sure to give the memory back
+	}
   /* make the screen update */
   glutPostRedisplay();
 }
@@ -764,6 +799,18 @@ void keyPressed(unsigned char key, int x, int y) {
 			g_vLandTranslate[i] = 0.0;
 			g_vLandScale[i] = 1.0;
 		}
+	}
+
+	// Turns on/off the animation
+	if (key == ' ') { // Space Pressed, turn screenshot saving on/off
+		if (saveScreenShotOn == false) { 
+			saveScreenShotOn = true;
+			frameNum = 0;
+		}
+		else { 
+			saveScreenShotOn = false;
+			frameNum = 0;
+		}		
 	}
 }
 

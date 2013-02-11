@@ -87,6 +87,10 @@ RESET TRANSFORMATIONS:
 
 Key ESCAPE = Reset Transformations of heightField
 
+START/STOP SAVING SCREENSHOTS:
+
+Key SPACE = Turn Screen Shot saving on/off
+
 -------------
 Special Notes
 -------------
