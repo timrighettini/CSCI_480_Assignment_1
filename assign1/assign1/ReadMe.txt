@@ -18,6 +18,7 @@ The program completes the following tasks, EXCLUDING extra credit:
 4.  Mouse input allows the player to scale, rotate, and translate the image
 5.  Heightfield is colored using a smooth gradient
 6.  The heightfield can render as points, lines, triangles
+7.  The animation frames are stored in the Animation_MIPS folder, in the same location as the other images for this project
 
 Extra Credit Includes the following:
 1.  The program can support BBP1 and BBP3 by taking in seprarte heightfields of each color channel and the average of the color channels.  Colors of the height field change depending on the pixel value measured
@@ -25,7 +26,7 @@ Extra Credit Includes the following:
 	- Red Heightfield = Measuring Red Pixel Values for height
 	- Green Heightfield = Measuring Green Pixel Values for height
 	- Blue Heightfield = Measuring Blue Pixel Values for height
-	* This was tested with the smiley face image seen in the animation
+	* This was tested with the MIPS rabbit image as seen in the animation
 2.  A fourth rendering mode is implemented:  Wireframe can be drawn on top of triangles
 3.  Push/Pop matrices were used with transformations
 4.  Front and Back Triangle faces can be culled by pressing certain keys
