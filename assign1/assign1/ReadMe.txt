@@ -12,7 +12,7 @@ This OpenGL program is a simulation that draws a heightfield based upon an image
 
 The program completes the following tasks, EXCLUDING extra credit:
 
-1.  Renders a heightfield of a 256x256 image, with smooth image manupulations of images that size
+1.  Renders a heightfield of a 256x256 image, with smooth image manipulations of images that size
 2.  The window size is 640x480
 3.  The window is rendered in perspective view, and uses all of the appropriate z buffer variables
 4.  Mouse input allows the player to scale, rotate, and translate the image
