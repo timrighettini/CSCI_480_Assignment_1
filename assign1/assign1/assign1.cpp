@@ -52,10 +52,13 @@ float GRID_OFFSET = 0.0001; // For the triangle grid, the lines will draw slight
 enum drawType {VERTEX, GRID, TRIANGLE, TRIANGLE_GRID}; // Will determine HOW to draw the heightfield
 enum drawType drawState; // Instantiate the enum
 
+enum lineDrawType {RECTANGLE, SINGLE_DIAGONAL, DOUBLE_DIAGONAL}; // Will determine how lines should be drawn for wireframes
+enum lineDrawType lineDrawState; // instantiate the enum
+
 enum drawColor {RED, GREEN, BLUE, ALL}; // Will determine WHAT COLOR to DRAW and MAKE HEIGHT VALUES from
 enum drawColor drawColorType; // Instantiate the enum
 
-bool backFaceCullingActive = false;
+bool backFaceCullingActive = false; // Will determine if face culling is used or not
 
 /* see <your pic directory>/pic.h for type Pic */
 Pic* g_pHeightData;
@@ -135,12 +138,13 @@ void myinit()
 	glDepthMask(GL_TRUE);
 	glEnable(GL_DEPTH_TEST);
 
-	// Enable polygon offser
+	// Enable polygon offset
 	glEnable(GL_POLYGON_OFFSET_LINE);
 
 	// Set my state enums
 	drawState = VERTEX;
 	drawColorType = ALL;
+	lineDrawState = RECTANGLE;
 }
 
 void createVertex(int x, int y, float offSet) { // This function takes in an x,y coordinate and creates a vertex -- can be used in all drawing functions -- all that has to be changed is the ordering of the loop
@@ -184,8 +188,7 @@ void createVertex(int x, int y, float offSet) { // This function takes in an x,y
 		}
 		else if (drawColorType == ALL) { 
 			heightValue = (redPixValue + bluPixValue + grnPixValue)/3;;
-		}
-	
+		}	
 
 		// Now, begin actually making the point
 
@@ -195,7 +198,7 @@ void createVertex(int x, int y, float offSet) { // This function takes in an x,y
 		heightValue = heightValue/PIX_DEPTH;
 
 		if (drawColorType == ALL) { 
-			if (offSet != 0) { // Draw Grid Black so it is visible against the triangles
+			if (offSet != 0) { // Draw Grid Blacker so it is visible against the triangles
 				glColor3f(0.65, heightValue, 0.65); 
 			}
 			else {
@@ -203,7 +206,7 @@ void createVertex(int x, int y, float offSet) { // This function takes in an x,y
 			}
 		}
 		else if (drawColorType == RED) { 
-			if (offSet != 0) { // Draw Grid Black so it is visible against the triangles
+			if (offSet != 0) { // Draw Grid Blacker so it is visible against the triangles
 				glColor3f(0.65, heightValue, heightValue); 
 			}	
 			else {
@@ -211,7 +214,7 @@ void createVertex(int x, int y, float offSet) { // This function takes in an x,y
 			}
 		}
 		else if (drawColorType == GREEN) { 
-			if (offSet != 0) { // Draw Grid Black so it is visible against the triangles
+			if (offSet != 0) { // Draw Grid Blacker so it is visible against the triangles
 				glColor3f(heightValue, 0.65, heightValue); 
 			}
 			else {
@@ -219,7 +222,7 @@ void createVertex(int x, int y, float offSet) { // This function takes in an x,y
 			}
 		}
 		else if (drawColorType == BLUE) { 
-			if (offSet != 0) { // Draw Grid Black so it is visible against the triangles
+			if (offSet != 0) { // Draw Grid Blacker so it is visible against the triangles
 				glColor3f(heightValue, heightValue, 0.65); 
 			}
 			else  {
@@ -267,7 +270,7 @@ void drawLines(float offset) {
 	*/
 	/****** GL_LINE_STRIP algorithm ******/
 
-	if (offset == 0) { // Draw the diagonal line + horizontal line
+	if (lineDrawState == SINGLE_DIAGONAL || lineDrawState == DOUBLE_DIAGONAL) { // Draw the diagonal line + horizontal line
 		// Draw Lines Horizontally like this
 		/*
 		2------1
@@ -296,7 +299,7 @@ void drawLines(float offset) {
 		}
 	}
 
-	else { // Allow for easy rendering with the Tris + Points
+	else { // Allow for easy rendering
 		// Simplified Loop: Only draw horizontal line from (2) to (1)
 		///*
 		for (int y = 0; y < g_pHeightData->ny; y++) { // For Every x
@@ -309,7 +312,7 @@ void drawLines(float offset) {
 		//*/
 	}
 
-	if (offset == 0) { // Draw the right diagonal line + vertical line
+	if (lineDrawState == DOUBLE_DIAGONAL) { // Draw the right diagonal line + vertical line
 		/*
 		// Draw Lines Vertically like this right after
 		2
@@ -345,8 +348,9 @@ void drawLines(float offset) {
 		}
 		//*/
 	}
-	else {  // Allow for easy rendering with the Tris + Points
-		// Simplifed Loop: Draw ONLY the vertical line from (2) to (1)
+	else {  // Allow for easy rendering 
+		// Simplifed Loop: Draw Lines like this:
+		
 		///*
 		for (int x = 0; x < g_pHeightData->nx; x++) { // For Every x
 			glBegin(GL_LINE_STRIP);
@@ -358,7 +362,7 @@ void drawLines(float offset) {
 		//*/
 	}
 
-	/**** GL_LINES Algorithm ****/
+	/**** Old GL_LINES Algorithm ****/
 
 	/*
 
@@ -463,7 +467,6 @@ void drawTriangles() {
 	- Loop 2's and 3's until the end of top row
 	- End with 4
 	- Loop this process until finished with heightfield
-
 	*/
 
 	/***** GL_TRIANGLE_STRIP algorithm *****/
@@ -476,6 +479,8 @@ void drawTriangles() {
 		glEnd();
 	}
 
+	
+	/***** Old GL_TRIANGLES algorithm ******/
 	/*
 	glBegin(GL_TRIANGLES);
 	for (int y = 0; y < g_pHeightData->ny- 1; y++) {
@@ -544,7 +549,7 @@ rotation/translation/scaling */
 		(scaleMultDPI * g_vLandScale[2])
 	); // Scale the Matrix
 
-	// Begin drawing the heightField, well, my polygon to start
+	// Begin drawing the heightField
 	if (drawState == VERTEX) { // Then draw points
 		drawPoints();
 	}
@@ -560,7 +565,7 @@ rotation/translation/scaling */
 		drawLines(GRID_OFFSET);
 	}
 
-	glPopMatrix();
+	glPopMatrix(); // Remove the transformation matrix
 
 	glutSwapBuffers();
 }
@@ -580,10 +585,10 @@ void reshape(int w, int h) { // This function will project the contents of the p
 	positionCamera(); // Sets the camera position
 
 	/*
-		Viewing Angle: 45
+		Viewing Angle: 60
 		Aspect Ratio: 1.333 (4:3)
-		Near Clipping Plane: 0.5
-		Far  "            ": 1.0
+		Near Clipping Plane: 0.01
+		Far  "            ": 1000.0
 	*/
 	// Set the matrix mode back to modelView, so things do not get messed up
 	glMatrixMode(GL_MODELVIEW);
@@ -696,40 +701,51 @@ void mousebutton(int button, int state, int x, int y)
 // New keyboard function -- switches between drawing states for triagles, lines, points, and colors
 void keyPressed(unsigned char key, int x, int y) {	
 	// Draw Options
-	if (key == 'q') { // then set drawing to points
+	if (key == '1') { // then set drawing to points
 		drawState = VERTEX;
 	}
-	if (key == 'w') { // then set drawing to lines
+	if (key == '2') { // then set drawing to lines
 		drawState = GRID;
 	}
-	if (key == 'e') { // then set drawing to triangles
+	if (key == '3') { // then set drawing to triangles
 		drawState = TRIANGLE;
 	}
-	if (key == 'r') { // then set drawing to triangle mesh
+	if (key == '4') { // then set drawing to triangle mesh
 		drawState = TRIANGLE_GRID;
 	}
 
 	// Color Options
-	if (key == 'a') { // then set drawing color to ALL
+	if (key == 'q') { // then set drawing color to ALL
 			drawColorType = ALL;
 	}
-	if (key == 's') { // then set drawing color to red
+	if (key == 'w') { // then set drawing color to red
 			drawColorType = RED;
 	}
-	if (key == 'd') { // then set drawing color to green
+	if (key == 'e') { // then set drawing color to green
 			drawColorType = GREEN;
 	}
-	if (key == 'f') { // then set drawing color to blue
+	if (key == 'r') { // then set drawing color to blue
 			drawColorType = BLUE;
+	}
+
+	// Line Drawing Options
+	if (key == 'a') { // then set wireframe drawing to rectangles
+			lineDrawState = RECTANGLE;
+	}
+	if (key == 's') { // then set wireframe drawing to rectangles + diagonal
+			lineDrawState = SINGLE_DIAGONAL;
+	}
+	if (key == 'd') { // then set wireframe drawing to rectangles + intersecting diagonals
+			lineDrawState = DOUBLE_DIAGONAL;
 	}
 
 	// Culling Options
 	if (key == 'z') {
-		if (backFaceCullingActive == false) {	// Activate back face culling
+		if (backFaceCullingActive == false) { // Activate face culling
 			glEnable(GL_CULL_FACE);
 			backFaceCullingActive = true;
 		}
-		else { // Deactivate back face culling
+		else { // Deactivate face culling
 			glDisable(GL_CULL_FACE);
 			backFaceCullingActive = false;
 		}
@@ -739,6 +755,15 @@ void keyPressed(unsigned char key, int x, int y) {
 	}
 	if (key == 'c') { // Cull Back Faces
 		glCullFace(GL_BACK);
+	}
+
+	// Reset Button
+	if (key == 27) { // Reset the position of the heightfield -- ESC key
+		for (int i = 0; i < 3; i++) {
+			g_vLandRotate[i] = 0.0;
+			g_vLandTranslate[i] = 0.0;
+			g_vLandScale[i] = 1.0;
+		}
 	}
 }
 
@@ -825,10 +850,6 @@ int main(int argc, char* argv[])
 
 	/* do initialization */
 	myinit();
-
-	/* Temporary Testing To See how image stuff works. */
-
-	
 
 	glutMainLoop();
 	return 0;
